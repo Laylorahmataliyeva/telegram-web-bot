@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import './App.css';
 import Card from './components/card/card';
 import Cart from './components/cart/cart';
@@ -11,9 +11,9 @@ const telegram = window.Telegram.WebApp;
 const App = () => {
   const [cartItems, setCartItems] = useState([]);
 
-useEffect(() =>{
-  telegram.ready();
-});
+  useEffect(() => {
+    telegram.ready();
+  });
 
   const onAddItem = (item) => {
     const existItem = cartItems.find(c => c.id === item.id);
@@ -49,11 +49,28 @@ useEffect(() =>{
     setCartItems(newData);
   };
 
-
   const onCheckout = () => {
-    telegram.MainButton.text ='Sotib olish :)';
-    telegram.MainButton.show();
-  }
+   
+    if (cartItems.length > 0) {
+        telegram.MainButton.text = `Sotib olish (${cartItems.reduce((a, c) => a + c.quantity, 0)} kurs)`;
+        telegram.MainButton.show();
+    } else {
+        telegram.MainButton.hide();
+    }
+  };
+
+   const onSendData = useCallback(() => {
+    telegram.sendData(JSON.stringify(cartItems));
+  }, [cartItems]);
+  
+  useEffect(() => {
+    telegram.onEvent('mainButtonClicked', onSendData);
+    return () => telegram.offEvent('mainButtonClicked', onSendData);
+  }, [onSendData]);
+
+  useEffect(() => {
+    onCheckout();
+  }, [cartItems]);
 
   return (
     <>

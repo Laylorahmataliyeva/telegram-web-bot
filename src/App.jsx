@@ -9,87 +9,87 @@ const courses = getData();
 const telegram = window.Telegram.WebApp;
 
 const App = () => {
-  const [cartItems, setCartItems] = useState([]);
+    const [cartItems, setCartItems] = useState([]);
 
-  useEffect(() => {
-    telegram.ready();
-  });
+    useEffect(() => {
+        telegram.ready();
+    }, []);
 
-  const onAddItem = (item) => {
-    const existItem = cartItems.find(c => c.id === item.id);
+    const onAddItem = item => {
+        const existItem = cartItems.find(c => c.id === item.id);
 
-    if (existItem) {
-      const newData = cartItems.map(c =>
-        c.id === item.id
-          ? { ...existItem, quantity: existItem.quantity + 1 }
-          : c
-      );
-      setCartItems(newData);
-    } else {
-      const newData = [...cartItems, { ...item, quantity: 1 }];
-      setCartItems(newData);
-    }
-  };
+        if (existItem) {
+            const newData = cartItems.map(c =>
+                c.id === item.id
+                    ? { ...existItem, quantity: existItem.quantity + 1 }
+                    : c
+            );
+            setCartItems(newData);
+        } else {
+            const newData = [...cartItems, { ...item, quantity: 1 }];
+            setCartItems(newData);
+        }
+    };
 
-  const onRemoveItem = (item) => {
-    const existItem = cartItems.find(c => c.id === item.id);
+    const onRemoveItem = item => {
+        const existItem = cartItems.find(c => c.id === item.id);
 
-    let newData;
+        let newData;
+        if (existItem.quantity === 1) {
+            newData = cartItems.filter(c => c.id !== existItem.id);
+        } else {
+            newData = cartItems.map(c =>
+                c.id === existItem.id
+                    ? { ...existItem, quantity: existItem.quantity - 1 }
+                    : c
+            );
+        }
+        setCartItems(newData);
+    };
 
-    if (existItem.quantity === 1) {
-      newData = cartItems.filter(c => c.id !== existItem.id);
-    } else {
-      newData = cartItems.map(c =>
-        c.id === existItem.id
-          ? { ...existItem, quantity: existItem.quantity - 1 }
-          : c
-      );
-    }
+    const onCheckout = useCallback(() => {
+        const totalQuantity = cartItems.reduce((a, c) => a + c.quantity, 0);
 
-    setCartItems(newData);
-  };
+        if (totalQuantity > 0) {
+            telegram.MainButton.text = `Sotib olish (${totalQuantity} kurs)`;
+            telegram.MainButton.show();
+        } else {
+            telegram.MainButton.hide();
+        }
+    }, [cartItems]);
 
-  const onCheckout = () => {
-   
-    if (cartItems.length > 0) {
-        telegram.MainButton.text = `Sotib olish (${cartItems.reduce((a, c) => a + c.quantity, 0)} kurs)`;
-        telegram.MainButton.show();
-    } else {
-        telegram.MainButton.hide();
-    }
-  };
+    const onSendData = useCallback(() => {
+        telegram.sendData(JSON.stringify(cartItems));
+    }, [cartItems]);
 
-   const onSendData = useCallback(() => {
-    telegram.sendData(JSON.stringify(cartItems));
-  }, [cartItems]);
-  
-  useEffect(() => {
-    telegram.onEvent('mainButtonClicked', onSendData);
-    return () => telegram.offEvent('mainButtonClicked', onSendData);
-  }, [onSendData]);
+    useEffect(() => {
+        telegram.onEvent('mainButtonClicked', onSendData);
+        return () => telegram.offEvent('mainButtonClicked', onSendData);
+    }, [onSendData]);
 
-  useEffect(() => {
-    onCheckout();
-  }, [cartItems]);
+    useEffect(() => {
+        onCheckout();
+    }, [cartItems, onCheckout]);
 
-  return (
-    <>
-      <h1 className='heading'>Sammi kurslar</h1>
 
-      <Cart cartItems={cartItems} onCheckout={onCheckout}/>
+    return (
+        <>
+            <h1 className='heading'>Sammi kurslar</h1>
+            
+            <Cart cartItems={cartItems} /> 
 
-      <div className='cards__container'>
-        {courses.map(course => (
-          <Card
-            key={course.id}
-            course={course}
-            onAddItem={onAddItem}
-            onRemoveItem={onRemoveItem}
-          />
-        ))}
-      </div>
-    </>
-  );
+            <div className='cards__container'>
+                {courses.map(course => (
+                    <Card
+                        key={course.id}
+                        course={course}
+                        onAddItem={onAddItem}
+                        onRemoveItem={onRemoveItem}
+                    />
+                ))}
+            </div>
+        </>
+    );
 };
 
 export default App;
